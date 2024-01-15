@@ -5,9 +5,26 @@ const DELETE_FORM = 'DELETE_FORM';
 const UPDATE_FORM_TYPE = 'UPDATE_FORM_TYPE';
 const ADD_OPTION = "ADD_OPTION";
 const REMOVE_OPTION = "REMOVE_OPTION";
+const HANDLE_CHANGE_INPUT_FORM = "HANDLE_CHANGE_INPUT";
+const HANDLE_CHANGE_INPUT_OPTION = "HANDLE_CHANGE_INPUT_OPTION";
+const CLEAR_FORM = "CLEAR_FORM";
 
 const addForm = () => ({
     type: ADD_FORM
+});
+
+const clearForm = () => ({
+    type: CLEAR_FORM,
+});
+
+const handleChangeInputForm = (formIndex, value) => ({
+    type: HANDLE_CHANGE_INPUT_FORM,
+    payload: { formIndex, value }
+});
+
+const handleChangeInputOption = (formIndex, optionIndex, value) => ({
+    type: HANDLE_CHANGE_INPUT_OPTION,
+    payload: { formIndex, optionIndex, value }
 });
 
 const deleteForm = (formIndex) => ({
@@ -40,7 +57,7 @@ function formReducer(state = initialState, action) {
         case ADD_FORM:
             return {
                 ...state,
-                forms: [...state.forms, {type: 'text', options: []}]
+                forms: [...state.forms, {type: 'text', options: [], value: ""}]
             };
         case UPDATE_FORM_TYPE:
             const updatedForms = state.forms.map((form, index) => {
@@ -53,7 +70,7 @@ function formReducer(state = initialState, action) {
         case ADD_OPTION:
             const optionAddedForms = state.forms.map((form, idx) => {
                 if (idx === action.payload.index) {
-                    return {...form, options: [...form.options, '']}; // Add a new empty option
+                    return {...form, options: [...form.options, { id: Date.now(), value: ''  }]};
                 }
                 return form;
             });
@@ -68,7 +85,6 @@ function formReducer(state = initialState, action) {
                     };
                 }
                 return form;
-
             });
             return {...state, forms: updatedFormsForRemoval};
         }
@@ -77,22 +93,52 @@ function formReducer(state = initialState, action) {
             const updatedForm = state.forms.filter((form, idx) => idx !== formIndex);
             return {...state, forms: updatedForm};
         }
+        case HANDLE_CHANGE_INPUT_FORM: {
+            const { formIndex, value } = action.payload;
+
+            const updatedForm = state.forms.map((form, idx) => idx === formIndex ? ({ ...form, value }) : form );
+            return {...state, forms: updatedForm};
+        }
+        case HANDLE_CHANGE_INPUT_OPTION: {
+            const { formIndex, optionIndex, value } = action.payload;
+            const updatedForms = state.forms.map((form, idx) => {
+                if (idx === formIndex) {
+                    return {
+                        ...form,
+                        options: form.options.map((option, index) => {
+                            if(optionIndex === index) {
+                                return { value };
+                            }
+                            return option;
+                        })
+                    };
+                }
+                return form;
+            });
+            return {...state, forms: updatedForms};
+        }
+        case CLEAR_FORM: {
+            const updateForms = state.forms.filter((form) => form.value.trim() !== '')
+                .map((form) => ({ ...form, options: form.options.filter((option) => option.value.trim() !== '') }));
+            return {forms: updateForms}; 
+        }
         default:
             return state;
     }
 }
 
-const getElementForm = (type, index, options) => {
+const getElementForm = (type, index, form) => {
     switch (type) {
         case "select": {
-            const optionsHtml = options.map((option, optIndex) => `
+            const optionsHtml = form.options.map((option, optIndex) => `
                 <div class="flex mt-2">
                     <input class="option-input shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
                         id="question-${index}-option-${optIndex}" 
                         name="question-${index}-option-${optIndex}"
                         type="text" 
                         placeholder="Option ${optIndex + 1}"
-                        value="${option}"
+                        value="${option.value}"
+                        data-option-index="${option.id}"
                     >
                     <button 
                         data-form-index="${index}"
@@ -111,7 +157,9 @@ const getElementForm = (type, index, options) => {
                 <div class="option__list">
                     ${optionsHtml}
                 </div>
-                <button class="option__add-btn create-form mt-4 text-[#cccccc] rounded focus:outline-none focus:shadow-outline">Add an option</button>
+                <button class="option__add-btn create-form mt-4 text-[#cccccc] rounded focus:outline-none focus:shadow-outline">
+                    Add an option
+                </button>
             </div>
             <div class="option__footer flex">
                 <button class="form__delete-btn mt-4 flex border rounded ml-auto">
@@ -143,14 +191,15 @@ const getElementForm = (type, index, options) => {
                 </div>
             `;
         case "multiple_choice": {
-            const optionsHtml = options.map((option, optIndex) => `
+            const optionsHtml = form.options.map((option, optIndex) => `
                 <div class="flex mt-2">
                     <input class="option-input shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
                         id="question-${index}-option-${optIndex}" 
                         name="question-${index}-option-${optIndex}"
                         type="text" 
                         placeholder="Option ${optIndex + 1}"
-                        value="${option}"
+                        value="${option.value}"
+                        data-option-index="${option.id}"
                     >
                     <button 
                         data-form-index="${index}"
@@ -218,11 +267,13 @@ function updateUI() {
         formElement.className = "bg-white p-4 rounded mt-4";
         formElement.innerHTML = `
             <div class="flex justify-between">
-                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                <input 
+                    class="form__input shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
                     id="question-${index}" 
                     placeholder="Question ${index + 1}"
                     name="question-${index}"
                     type="text"
+                    value="${form.value}"
                 >
                 <select name="question-${index}-${form.type}" class="question-type ml-4 w-[200px] block appearance-none w-full bg-gray-200 border border-gray-200 text-gray-700 py-3 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500" id="grid-state-${index}">
                   <option value="text" ${form.type === 'text' ? 'selected' : ''}>Text</option>
@@ -231,10 +282,43 @@ function updateUI() {
                   <option value="date" ${form.type === 'date' ? 'selected' : ''}>Date</option>
                 </select>
             </div>
-            ${getElementForm(form.type, index, form.options)}
+            ${getElementForm(form.type, index, form)}
         `;
 
         formList.appendChild(formElement);
+
+        if (form.type === 'select' || form.type === 'multiple_choice') {
+            const addButton = formElement.querySelector('.option__add-btn');
+            const deleteButtons = formElement.querySelectorAll(".delete__option-btn");
+            
+            form.options.forEach((_, optIndex) => {
+                const optionInput = formElement.querySelector(`#question-${index}-option-${optIndex}`);
+                optionInput.addEventListener('change', (e) => {
+                    store.dispatch(handleChangeInputOption(index, optIndex, e.target.value));
+                });
+            });
+           
+            addButton.addEventListener('click', function () {
+                store.dispatch(addOption(index));
+            });
+            if (deleteButtons) {
+                deleteButtons.forEach(button => {
+                    button.addEventListener('click', function () {
+                        const formIndex = parseInt(this.getAttribute('data-form-index'));
+                        const optionIndex = parseInt(this.getAttribute('data-option-index'));
+                        store.dispatch(removeOption(formIndex, optionIndex));
+                    });
+                });
+            }
+        }
+
+        const formInput = formElement.querySelector('.form__input');
+        if(formInput) {
+            formInput.addEventListener("change", (e) => {
+                const value = e.target.value;
+                store.dispatch(handleChangeInputForm(index, value));
+            });
+        }
 
         const deleteFormBtn = formElement.querySelector(".form__delete-btn");
         if (deleteFormBtn) {
@@ -249,26 +333,12 @@ function updateUI() {
             store.dispatch(updateFormType(index, selectedType));
         });
 
-        if (form.type === 'select' || form.type === 'multiple_choice') {
-            const addButton = formElement.querySelector('.option__add-btn');
-            const deleteButtons = formElement.querySelectorAll(".delete__option-btn");
-            addButton.addEventListener('click', function () {
-                store.dispatch(addOption(index));
-            });
-            if (deleteButtons) {
-                deleteButtons.forEach(button => {
-                    button.addEventListener('click', function () {
-                        const formIndex = parseInt(this.getAttribute('data-form-index'));
-                        const optionIndex = parseInt(this.getAttribute('data-option-index'));
-                        console.log(formIndex, optionIndex)
-                        store.dispatch(removeOption(formIndex, optionIndex));
-                    });
-                });
-            }
-        }
-
     });
 }
+
+document.querySelector(".form__content").addEventListener("submit", (e) => {
+    store.dispatch(clearForm())
+});
 
 store.subscribe(updateUI);
 

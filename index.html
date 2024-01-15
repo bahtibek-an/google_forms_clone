@@ -17,22 +17,22 @@
             <section class="form w-[770px] mx-auto mt-10">
                 <form class="form__content" method="post" action="/">
                     <header class="form__header rounded bg-white p-4">
-                        <h1 class="font-medium text-2xl">New form</h1>
+                        <input name="title" placeholder="Title" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                         <input class="mt-5 shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                                id="description" name="description" type="text" placeholder="Description">
                     </header>
+                    <div class="form__list"></div>
+                    <div class="mt-5">
+                        <button class="create-form bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                                type="button">
+                            +
+                        </button>
+                        <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                                type="submit"> 
+                            Save
+                        </button>
+                    </div>
                 </form>
-                <div class="form__list"></div>
-                <div class="mt-5">
-                    <button class="create-form bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                            type="button">
-                        +
-                    </button>
-                    <button class="create-form bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                            type="submit"> 
-                        Save
-                    </button>
-                </div>
             </section>
         </div>
     </main>
